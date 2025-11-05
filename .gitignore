@@ -1,0 +1,33 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log
+.pnpm-store/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Vite
+frontend/dist/
+frontend/.vite/
+
+# Env
+.env
+backend/.env
+processor/.env
+frontend/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+.idea/
+.vscode/
+
+# Build
+*.zip
+*.tar.gz
