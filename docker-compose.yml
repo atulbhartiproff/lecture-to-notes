@@ -49,11 +49,24 @@ services:
     build: ./frontend
     container_name: ai-frontend
     environment:
-      - VITE_API_URL=http://ai-backend:5000
+      - VITE_API_URL=http://backend:5000
     depends_on:
       - backend
     ports:
       - "5173:5173"
+    restart: unless-stopped
+
+  processor:
+    build: ./processor
+    container_name: ai-processor
+    env_file:
+      - ./processor/.env
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - ollama
+    ports:
+      - "8001:8000"
     restart: unless-stopped
 
 volumes:

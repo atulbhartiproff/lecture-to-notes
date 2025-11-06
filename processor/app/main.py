@@ -64,8 +64,19 @@ def _call_ollama(prompt: str, model: Optional[str] = None) -> Dict[str, Any]:
 			{"role": "user", "content": prompt},
 		],
 	}
-	r = requests.post(url, json=payload, timeout=120)
-	r.raise_for_status()
+	try:
+		r = requests.post(url, json=payload, timeout=120)
+		r.raise_for_status()
+	except requests.HTTPError as http_err:
+		status = http_err.response.status_code if http_err.response is not None else 500
+		text = http_err.response.text if http_err.response is not None else str(http_err)
+		# Provide a clearer message when model is not found or not pulled yet
+		if status == 404 or "model" in text.lower() and "not" in text.lower():
+			raise HTTPException(status_code=502, detail=f"Ollama model not available. Ensure the model is pulled. Raw: {text}")
+		raise HTTPException(status_code=502, detail=f"Ollama error: {text}")
+	except requests.RequestException as req_err:
+		raise HTTPException(status_code=502, detail=f"Ollama connection error: {str(req_err)}")
+
 	data = r.json()
 	content = data.get("message", {}).get("content", "{}")
 	try:
@@ -76,7 +87,7 @@ def _call_ollama(prompt: str, model: Optional[str] = None) -> Dict[str, Any]:
 		end = content.rfind('}')
 		if start != -1 and end != -1 and end > start:
 			return json.loads(content[start:end+1])
-		raise
+		raise HTTPException(status_code=502, detail="Ollama returned non-JSON content")
 
 
 def _generate_from_transcript(transcript: str) -> Dict[str, Any]:

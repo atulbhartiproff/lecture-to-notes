@@ -16,6 +16,7 @@ frontend/.vite/
 # Env
 .env
 backend/.env
+ai_service/.env
 processor/.env
 frontend/.env
 
@@ -31,3 +32,7 @@ Thumbs.db
 # Build
 *.zip
 *.tar.gz
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
