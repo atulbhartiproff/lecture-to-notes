@@ -18,7 +18,7 @@
     FROM nginx:alpine
     
     # copy compiled output from previous stage
-    COPY --from=build /app/dist /usr/share/nginx/html
+    COPY --from=build /dist /usr/share/nginx/html
     
     # expose the production port
     EXPOSE 80
