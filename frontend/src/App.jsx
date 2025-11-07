@@ -24,13 +24,33 @@ export default function App() {
         body: form,
       })
       if (!res.ok) {
-        const t = await res.text()
-        throw new Error(t || 'Request failed')
+        let errorMsg = 'Request failed'
+        try {
+          const errorData = await res.json()
+          errorMsg = errorData.error || errorData.details || errorData.message || errorMsg
+        } catch {
+          try {
+            const errorText = await res.text()
+            errorMsg = errorText || errorMsg
+          } catch {
+            errorMsg = `Server error: ${res.status} ${res.statusText}`
+          }
+        }
+        throw new Error(errorMsg)
       }
       const data = await res.json()
       setResult(data)
     } catch (err) {
-      setError(err.message || 'Request failed')
+      let errorMessage = 'Request failed'
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        errorMessage = `Network error: Unable to connect to backend at ${API_BASE}. Please check if the backend is running.`
+      } else if (err.message) {
+        errorMessage = err.message
+      } else if (err instanceof Error) {
+        errorMessage = err.toString()
+      }
+      console.error('Upload error:', err)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
