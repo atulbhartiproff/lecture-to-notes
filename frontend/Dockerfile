@@ -1,44 +1,44 @@
 # ---- Build Stage ----
 FROM oven/bun:1.3.1 AS build
 
-# Set working directory inside container
 WORKDIR /frontend
 
-# Copy dependency manifests first (for caching)
+ARG VITE_API_URL=http://localhost:5000
+ENV VITE_API_URL=$VITE_API_URL
+
 COPY package*.json ./
-
-# Install dependencies (skip postinstall to avoid esbuild check issue)
 RUN bun install --ignore-scripts
-
-# Copy the rest of the frontend source code
 COPY . .
-
-# Build static production files (Vite output)
 RUN bun run build
 
 # ---- Serve Stage ----
 FROM nginx:alpine
 
-# Copy compiled output from build stage to nginx html folder
-COPY --from=build /app/dist /usr/share/nginx/html
+# Copy frontend build output
+COPY --from=build /frontend/dist /usr/share/nginx/html
 
-# Optional: Custom nginx config for single-page apps (React/Vite)
-# Ensures client-side routing works
+# Replace default nginx config with SPA + API proxy
 RUN rm /etc/nginx/conf.d/default.conf
-COPY <<EOF /etc/nginx/conf.d/default.conf
-server {
-    listen 80;
-    server_name _;
-    root /usr/share/nginx/html;
-    index index.html;
-    location / {
-        try_files \$uri /index.html;
-    }
-}
-EOF
+RUN printf "server {\n\
+    listen 80;\n\
+    server_name _;\n\
+    root /usr/share/nginx/html;\n\
+    index index.html;\n\
+\n\
+    # Proxy API requests to backend inside ECS task\n\
+    location /api/ {\n\
+        proxy_pass http://localhost:5000/;\n\
+        proxy_set_header Host \$host;\n\
+        proxy_set_header X-Real-IP \$remote_addr;\n\
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\n\
+        proxy_set_header X-Forwarded-Proto \$scheme;\n\
+    }\n\
+\n\
+    # React/Vite SPA routes\n\
+    location / {\n\
+        try_files \$uri /index.html;\n\
+    }\n\
+}\n" > /etc/nginx/conf.d/default.conf
 
-# Expose port 80
 EXPOSE 80
-
-# Run nginx
 CMD ["nginx", "-g", "daemon off;"]
