@@ -3,7 +3,7 @@ FROM oven/bun:1.3.1 AS build
 
 WORKDIR /frontend
 
-ARG VITE_API_URL=http://localhost:5000
+ARG VITE_API_URL=http://backend:5000
 ENV VITE_API_URL=$VITE_API_URL
 
 COPY package*.json ./
